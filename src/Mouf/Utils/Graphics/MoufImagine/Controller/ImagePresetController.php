@@ -30,16 +30,18 @@ class ImagePresetController extends Controller{
     private $filters;
 
     /**
+     * The path to the image that should be displayed if the original image is not found
      * @var string
      */
-    private $defaultImage;
+    private $image404;
 
-    /**
-     * @param string $defaultImage
-     */
-    public function setDefaultImage($defaultImage) {
-        $this->defaultImage = $defaultImage;
-    }
+    private static $formats = [
+        IMAGETYPE_JPEG => 'jpg',
+        IMAGETYPE_PNG  => 'png',
+        IMAGETYPE_GIF  => 'gif',
+        IMAGETYPE_WBMP => 'wbmp',
+        IMAGETYPE_XBM => 'xbm'
+    ];
 
     /**
      * @param string $url
@@ -57,20 +59,18 @@ class ImagePresetController extends Controller{
     private function image($imagePath){
         $basePath = empty($this->originalPath) ? "" : ($this->originalPath . DIRECTORY_SEPARATOR);
         $originalImagePath = ROOT_PATH . $basePath . $imagePath;
-        $pathInfo = pathinfo($originalImagePath);
-        $folder = $pathInfo['dirname'];
-        $newFolder = str_replace(ROOT_PATH . $basePath, "", $folder);
-	if(!file_exists($originalImagePath)) {
-            $originalImagePath = ROOT_PATH . $this->defaultImage;
+
+        if (!file_exists($originalImagePath)){
+            $originalImagePath = ROOT_PATH . $this->image404;
         }
+
         $image = $this->imagine->open($originalImagePath);
         foreach ($this->filters as $filter){
             $image = $filter->apply($image);
         }
 
-
-
-        $subPath = ROOT_PATH . $this->url . DIRECTORY_SEPARATOR . $newFolder;
+        $finalPath = ROOT_PATH . $this->url . DIRECTORY_SEPARATOR . $imagePath;
+        $subPath = substr($finalPath, 0, strrpos($finalPath, "/"));
 
         if (!file_exists($subPath)){
             $oldUmask = umask();
@@ -82,8 +82,11 @@ class ImagePresetController extends Controller{
             }
         }
 
-        $image->save(ROOT_PATH . $this->url . DIRECTORY_SEPARATOR . $imagePath);
-        $image->show("jpg");
+        $image->save($finalPath);
+
+        $format = self::$formats[exif_imagetype($finalPath)];
+
+        $image->show($format);
     }
 
     /**
@@ -148,5 +151,15 @@ class ImagePresetController extends Controller{
     public function imageLevel5($image, $path1, $path2, $path3, $path4, $path5){
         $this->image("$path1/$path2/$path3/$path4/$path5/$image");
     }
+
+    /**
+     * @param string $image404
+     */
+    public function setImage404($image404)
+    {
+        $this->image404 = $image404;
+    }
+
+
 
 }
