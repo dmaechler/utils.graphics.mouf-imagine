@@ -30,6 +30,18 @@ class ImagePresetController extends Controller{
     private $filters;
 
     /**
+     * @var string
+     */
+    private $defaultImage;
+
+    /**
+     * @param string $defaultImage
+     */
+    public function setDefaultImage($defaultImage) {
+        $this->defaultImage = $defaultImage;
+    }
+
+    /**
      * @param string $url
      * @param string $originalPath
      * @param AbstractImagine $imagine
@@ -48,7 +60,9 @@ class ImagePresetController extends Controller{
         $pathInfo = pathinfo($originalImagePath);
         $folder = $pathInfo['dirname'];
         $newFolder = str_replace(ROOT_PATH . $basePath, "", $folder);
-
+	if(!file_exists($originalImagePath)) {
+            $originalImagePath = ROOT_PATH . $this->defaultImage;
+        }
         $image = $this->imagine->open($originalImagePath);
         foreach ($this->filters as $filter){
             $image = $filter->apply($image);
